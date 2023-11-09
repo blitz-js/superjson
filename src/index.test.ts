@@ -1173,7 +1173,7 @@ test('regression #245: superjson referential equalities only use the top-most pa
   expect(parsed).toEqual(input);
 });
 
-test('dedupe=true', () => {
+test('dedupe=true, pruned', () => {
   const instance = new SuperJSON({
     dedupe: true,
   });
@@ -1195,14 +1195,48 @@ test('dedupe=true', () => {
   expect(json.a);
 
   // This has already been seen and should be deduped
-  expect(json.b).toBeNull();
+  expect(json.b).toEqual('[Pruned *]');
 
   expect(json).toMatchInlineSnapshot(`
     {
       "a": {
         "children": [],
       },
-      "b": null,
+      "b": "[Pruned *]",
+    }
+  `);
+
+  expect(instance.deserialize(output)).toEqual(input);
+});
+
+test('dedupe=true, circular', () => {
+  const instance = new SuperJSON({
+    dedupe: true,
+  });
+
+  type Node = {
+    children: Node[];
+  };
+  const root: Node = {
+    children: [],
+  };
+  root.children.push(root);
+  const input = {
+    a: root,
+    b: root,
+  };
+  const output = instance.serialize(input);
+
+  const json = output.json as any;
+
+  expect(json).toMatchInlineSnapshot(`
+    Object {
+      "a": Object {
+        "children": Array [
+          "[Circular *]",
+        ],
+      },
+      "b": "[Pruned *]",
     }
   `);
 
