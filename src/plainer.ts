@@ -186,7 +186,7 @@ export const walker = (
   }
 
   if (!isDeep(object, superJson)) {
-    const transformed = transformValue(object, superJson);
+    const transformed = transformValue(object, superJson, path);
 
     const result: Result = transformed
       ? {
@@ -209,23 +209,13 @@ export const walker = (
     };
   }
 
-  const transformationResult = transformValue(object, superJson);
+  const transformationResult = transformValue(object, superJson, path);
   const transformed = transformationResult?.value ?? object;
 
   const transformedValue: any = isArray(transformed) ? [] : {};
   const innerAnnotations: Record<string, Tree<TypeAnnotation>> = {};
 
   forEach(transformed, (value, index) => {
-    if (
-      index === '__proto__' ||
-      index === 'constructor' ||
-      index === 'prototype'
-    ) {
-      throw new Error(
-        `Detected property ${index}. This is a prototype pollution risk, please remove it from your object.`
-      );
-    }
-
     const recursiveResult = walker(
       value,
       identities,

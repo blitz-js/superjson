@@ -16,6 +16,7 @@ import {
 } from './is.js';
 import { findArr } from './util.js';
 import SuperJSON from './index.js';
+import { stringifyPath } from './pathstringifier.js';
 
 export type PrimitiveTypeAnnotation = 'number' | 'undefined' | 'bigint';
 
@@ -310,14 +311,31 @@ const customRule = compositeTransformation(
 
 const compositeRules = [classRule, symbolRule, customRule, typedArrayRule];
 
+const checkForPrototypePollution = (path: any[]) => {
+  const index = path[path.length - 1];
+  if (
+    index === '__proto__' ||
+    index === 'constructor' ||
+    index === 'prototype'
+  ) {
+    throw new Error(
+      `Detected transformable property ${stringifyPath(
+        path
+      )}. This is a prototype pollution risk, please remove it from your object.`
+    );
+  }
+};
+
 export const transformValue = (
   value: any,
-  superJson: SuperJSON
+  superJson: SuperJSON,
+  path: any[]
 ): { value: any; type: TypeAnnotation } | undefined => {
   const applicableCompositeRule = findArr(compositeRules, rule =>
     rule.isApplicable(value, superJson)
   );
   if (applicableCompositeRule) {
+    checkForPrototypePollution(path);
     return {
       value: applicableCompositeRule.transform(value as never, superJson),
       type: applicableCompositeRule.annotation(value, superJson),
@@ -329,6 +347,7 @@ export const transformValue = (
   );
 
   if (applicableSimpleRule) {
+    checkForPrototypePollution(path);
     return {
       value: applicableSimpleRule.transform(value as never, superJson),
       type: applicableSimpleRule.annotation,

@@ -1059,7 +1059,13 @@ test.each(['__proto__', 'prototype', 'constructor'])(
   forbidden => {
     expect(() => {
       SuperJSON.serialize({
-        [forbidden]: 1,
+        [forbidden]: 1, // doesn't need entry in `meta`, so it's not a risk
+      });
+    }).not.toThrowError();
+
+    expect(() => {
+      SuperJSON.serialize({
+        [forbidden]: new Date(), // needs an entry in `meta`, so it's a risk
       });
     }).toThrowError(/This is a prototype pollution risk/);
   }
