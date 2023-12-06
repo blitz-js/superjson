@@ -216,16 +216,6 @@ export const walker = (
   const innerAnnotations: Record<string, Tree<TypeAnnotation>> = {};
 
   forEach(transformed, (value, index) => {
-    if (
-      index === '__proto__' ||
-      index === 'constructor' ||
-      index === 'prototype'
-    ) {
-      throw new Error(
-        `Detected property ${index}. This is a prototype pollution risk, please remove it from your object.`
-      );
-    }
-
     const recursiveResult = walker(
       value,
       identities,
@@ -235,6 +225,18 @@ export const walker = (
       [...objectsInThisPath, object],
       seenObjects
     );
+
+    const emitsMeta = recursiveResult.annotations !== undefined;
+    if (
+      emitsMeta &&
+      (index === '__proto__' ||
+        index === 'constructor' ||
+        index === 'prototype')
+    ) {
+      throw new Error(
+        `Detected property ${index}. This is a prototype pollution risk, please remove it from your object.`
+      );
+    }
 
     transformedValue[index] = recursiveResult.transformedValue;
 
